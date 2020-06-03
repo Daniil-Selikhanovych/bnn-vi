@@ -1,8 +1,51 @@
 import torch
+from torch.utils.data import Dataset, DataLoader
 from torch.distributions.multivariate_normal import MultivariateNormal
 import numpy as np
-import matplotlib.pyplot as plt
-import random
+from tqdm import tqdm
+
+def get_rotation(theta):
+    rad = np.radians(theta)
+    c, s = np.cos(rad), np.sin(rad)
+    R = np.array([[c, -s],
+                  [s,  c]])
+    return R
+
+
+class CircleDataset(Dataset):
+    def __init__(self, n_samples, n_centers=9, sigma=0.02, include_zero=True, target_label=2.):
+        super().__init__()
+        self.include_zero = include_zero
+        self.nus = []
+        if include_zero:
+            self.nus.append(torch.zeros(2))
+        self.sigma = sigma
+        for i in range(n_centers-include_zero):
+            R = get_rotation(i*360/(n_centers-include_zero))
+            self.nus.append(torch.tensor([1, 0] @ R, dtype=torch.float))
+        classes = torch.multinomial(torch.ones(n_centers), n_samples, 
+                                    replacement=True)
+        
+        data = []
+        target = []
+        for i in range(n_centers):
+            n_samples_class = torch.sum(classes == i)
+            if n_samples_class == 0:
+                continue
+            dist = MultivariateNormal(self.nus[i], 
+                                      torch.eye(2)*self.sigma**2)
+            data.append(dist.sample([n_samples_class.item()]))
+            enc = torch.full((n_samples_class, n_centers), -target_label)
+            enc[:, i] = target_label
+            target.append(enc + sigma * torch.randn(n_samples_class)[:, None])
+        self.data = torch.cat(data).float()
+        self.target = torch.cat(target).float()
+        
+    def __getitem__(self, idx):
+        return self.data[idx], self.target[idx]
+    
+    def __len__(self):
+        return self.data.shape[0]
 
 def gaussian_sampler_2d(gaussian_center, cov_matrix):
     mu_distr = MultivariateNormal(gaussian_center, cov_matrix)
