@@ -54,7 +54,8 @@ def plot_1d_label_data(data, range_for_real_labels,
                        var_prediction = None,
                        model_prediction_name = None,
                        coef = 2.0,
-                       figsize = (12, 6)):
+                       figsize = (12, 6),
+                       loc = "best"):
     fig = plt.figure(figsize = figsize)
 
     plt.xlabel(r'$x$') 
@@ -72,7 +73,7 @@ def plot_1d_label_data(data, range_for_real_labels,
         plt.fill_between(range_for_prediction, mean_prediction - coef * np.sqrt(var_prediction),
                          mean_prediction + coef * np.sqrt(var_prediction), color="C0",
                          alpha=0.2, label = fr'confidence interval for {model_prediction_name}: mean $\pm \; 2 \cdot std$')
-    plt.legend()
+    plt.legend(loc = loc)
     plt.grid(True)
     plt.show() 
 
