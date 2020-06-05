@@ -41,7 +41,10 @@ class ProgressPlotter:
             
         plt.show()
 
-def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_size=32):
+def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_size=32, mode='class'):
+    """
+    Mode is 'class' ~ classification or 'reg' ~ regression
+    """
     ts = np.linspace(0, 1, num_points)
     start = np.array(start)
     end = np.array(end)
@@ -71,10 +74,20 @@ def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_
         x, y = data
         x, y = np.array(x), np.array(y)
         x -= start
-        x = (x @ r)/np.sum(r**2)  
-        x = x.squeeze()
+        norm = None
+        if r.size > 1:
+            x = (x @ r)/np.sum(r**2)
+            x = x.squeeze(-1)
+        else:
+            x = (x * r)/r**2
+        
         mask = np.logical_and(x >= 0, x <= 1)
-        ax.scatter(x[mask], y[mask], c='r', s=10)
+        if mode == 'class':
+            ax.scatter(x[mask], y[mask], c='r', s=10)
+        elif mode == 'reg':
+            ax.plot(x[mask], y[mask], c='r')
+        else:
+            raise Exception(f"Incorrect mode: {mode}")
 
     ax.set_xlabel("$t$")
     ax.set_ylabel("$f(x^{(0)}+t(x^{(1)}-x^{(0)})$")
@@ -82,6 +95,7 @@ def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_
     ax.legend()
 
     plt.show()
+    return fig
 
 def plot_2D(xlim, ylim, model, num_points=50, figsize=(10, 6), data=None, batch_size=32):
     xs = np.linspace(*xlim, num_points)
@@ -130,3 +144,4 @@ def plot_2D(xlim, ylim, model, num_points=50, figsize=(10, 6), data=None, batch_
         ax.axis('scaled')
 
     plt.show()
+    return fig
