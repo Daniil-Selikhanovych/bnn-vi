@@ -123,7 +123,7 @@ if __name__ == "__main__":
     log_per = 5
 
     params = {
-        'in_features': 1,
+        'in_features': 2,
         'out_features': 1,
         'hidden_features': 50,
         'n_layers': 1,
@@ -151,7 +151,8 @@ if __name__ == "__main__":
         pyro.clear_param_store()
         nuts_kernel = NUTS(model_b)
 
-        mcmc = MCMC(nuts_kernel, num_samples=300, warmup_steps=300, num_chains=5)
-        mcmc.run(x_reg[:, None].float().to(DEVICE), y_reg[:, None].float().to(DEVICE))
+        mcmc = MCMC(nuts_kernel, num_samples=400, warmup_steps=200, num_chains=5) 
+        # mcmc.run(x_reg[:, None].float().to(DEVICE), y_reg[:, None].float().to(DEVICE))
+        mcmc.run(circles.data.float().to(DEVICE), circles.target[:, 0].float().to(DEVICE))
         samples = mcmc.get_samples()
         torch.save(samples, 'samples.pth')

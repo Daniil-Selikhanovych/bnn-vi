@@ -77,7 +77,6 @@ def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_
         norm = None
         if r.size > 1:
             x = (x @ r)/np.sum(r**2)
-            x = x.squeeze(-1)
         else:
             x = (x * r)/r**2
         
