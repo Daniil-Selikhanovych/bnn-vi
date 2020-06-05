@@ -41,7 +41,7 @@ class ProgressPlotter:
             
         plt.show()
 
-def plot_1D(start, end, model, n_repeats=1, num_points=50, figsize=(10, 6), data=None, batch_size=32):
+def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_size=32):
     ts = np.linspace(0, 1, num_points)
     start = np.array(start)
     end = np.array(end)
@@ -54,24 +54,17 @@ def plot_1D(start, end, model, n_repeats=1, num_points=50, figsize=(10, 6), data
     means = []
     stds = []
     for x, in tqdm(test_loader):
-        x = x.float().to(model.device)
-        z = []
-        for i in range(n_repeats):
-            z.append(model(x))
-        z = torch.stack(z, dim=0)
-        means.append(z.mean(dim=0))
-        if n_repeats > 1:
-            stds.append(z.std(dim=0))
+        mean, std = model(x.float())
+        means.append(mean)
+        stds.append(std)
 
     means = torch.cat(means).detach().cpu().numpy().squeeze()
-    if n_repeats > 1:
-      stds  = torch.cat(stds).detach().cpu().numpy().squeeze()
+    stds  = torch.cat(stds).detach().cpu().numpy().squeeze()
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-    if n_repeats > 1:
-        ax.fill_between(ts, means-stds, means+stds, 
-                        alpha=0.2, label="$\sigma[f(x)]$")
+    ax.fill_between(ts, means-stds, means+stds, 
+                    alpha=0.2, label="$\sigma[f(x)]$")
     ax.plot(ts, means, label="$\mathbb{E}\;[f(x)]$")
 
     if data != None:
@@ -90,7 +83,7 @@ def plot_1D(start, end, model, n_repeats=1, num_points=50, figsize=(10, 6), data
 
     plt.show()
 
-def plot_2D(xlim, ylim, model, n_repeats=1, num_points=50, figsize=(10, 6), data=None, batch_size=32):
+def plot_2D(xlim, ylim, model, num_points=50, figsize=(10, 6), data=None, batch_size=32):
     xs = np.linspace(*xlim, num_points)
     ys = np.linspace(*ylim, num_points)
     X, Y = np.meshgrid(xs, ys)
@@ -103,20 +96,14 @@ def plot_2D(xlim, ylim, model, n_repeats=1, num_points=50, figsize=(10, 6), data
     means = []
     stds = []
     for x, in tqdm(test_loader):
-        x = x.float().to(model.device)
-        z = []
-        for i in range(n_repeats):
-            z.append(model(x))
-        z = torch.stack(z, dim=0)
-        means.append(z.mean(dim=0))
-        if n_repeats > 1:
-            stds.append(z.std(dim=0))
+        mean, std = model(x.float())
+        means.append(mean)
+        stds.append(std)
 
     means = torch.cat(means).detach().cpu().numpy()
     means = means.reshape(len(ys), len(xs))
-    if n_repeats > 1:
-      stds  = torch.cat(stds).detach().cpu().numpy()
-      stds = stds.reshape(len(ys), len(xs))
+    stds  = torch.cat(stds).detach().cpu().numpy()
+    stds = stds.reshape(len(ys), len(xs))
     X = X.reshape(len(ys), len(xs))
     Y = Y.reshape(len(ys), len(xs))
 
@@ -127,14 +114,10 @@ def plot_2D(xlim, ylim, model, n_repeats=1, num_points=50, figsize=(10, 6), data
     fig.colorbar(cm, ax=ax)
     ax.set_title("$\mathbb{E}\;[f(x)]$")
 
-    if n_repeats > 1:
-        ax = axes[1]
-        cm = ax.contourf(X, Y, stds, alpha=0.2)
-        fig.colorbar(cm, ax=ax)
-        ax.set_title("$\sigma[f(x)]$")
-    else:
-        axes[1].axis("off")
-        axes = axes[:1]
+    ax = axes[1]
+    cm = ax.contourf(X, Y, stds, alpha=0.2)
+    fig.colorbar(cm, ax=ax)
+    ax.set_title("$\sigma[f(x)]$")
 
     for ax in axes:
         if data != None:
