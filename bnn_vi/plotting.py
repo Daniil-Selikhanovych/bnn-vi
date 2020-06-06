@@ -10,9 +10,12 @@ from tqdm.notebook import tqdm
 
 
 class ProgressPlotter:
-    def __init__(self, losses, update_per=5):
+    def __init__(self, losses, ylabel="Loss", update_per=5, show_smooth=True):
         self.losses = losses
+        self.ylabel = ylabel
         self.update_per = update_per
+        self.fig = None
+        self.show_smooth = show_smooth
         
     def start(self):
         self.time = time.time()
@@ -25,7 +28,7 @@ class ProgressPlotter:
         iter_time = (self.time - old_time)/self.update_per
       
         display.clear_output(wait=True)
-        fig, ax = plt.subplots(1, 1, figsize=(10, 6))
+        self.fig, ax = plt.subplots(1, 1, figsize=(10, 6))
         
         if 2*(len(self.losses)//2)-1 > 3:
             losses_smoothed = savgol_filter(self.losses, min(2*(len(self.losses)//2)-1, 51), 3)
@@ -33,10 +36,14 @@ class ProgressPlotter:
             losses_smoothed = self.losses
             
         ts = np.arange(len(self.losses), dtype=np.int)+1
-        ax.plot(ts, losses_smoothed, color=f"C0")
-        ax.plot(ts, self.losses, color=f"C0", alpha=0.3)
+        if self.show_smooth:
+            ax.plot(ts, self.losses, color=f"C0", alpha=0.3, label="Loss")
+            ax.plot(ts, losses_smoothed, color=f"C0", label="Smoothed loss")
+            ax.legend()
+        else:
+            ax.plot(ts, self.losses, color=f"C0")
         ax.set_xlabel(f"Epoch ({iter_time:.2g} s/epoch)")
-        ax.set_ylabel("$-ELBO$")
+        ax.set_ylabel(self.ylabel)
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
             
         plt.show()

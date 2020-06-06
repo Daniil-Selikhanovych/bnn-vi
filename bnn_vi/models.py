@@ -42,9 +42,40 @@ class Multilayer(nn.Module):
     def forward(self, x):
         return self.seq(x)
 
+    def train(self, data_loader, n_epochs, lr=1e-3, log_per=5, show_smooth=True):
+        optim = torch.optim.Adam(self.parameters(), lr=lr)
+        criterion = nn.MSELoss()
+        losses = []
+        fig = None
+        pp = ProgressPlotter(losses, "MSE", log_per, show_smooth)
+        pp.start()
+        for epoch in range(n_epochs):
+            total_loss = 0.
+            for x, y in data_loader:
+                x, y = x.float().to(self.device), y.float().to(self.device)
+                loss = criterion(self.forward(x), y.reshape(y.shape[0], -1))
+                total_loss += loss.item()
+                optim.zero_grad()
+                loss.backward()
+                optim.step()
+
+            total_loss /= len(data_loader)
+            losses.append(total_loss)
+            fig = pp.update(epoch)
+        
+        return pp.fig, losses
+
+    def get_mean_std(self, x):
+        out = self.forward(x.reshape(x.shape[0], -1))
+        return out, torch.zeros_like(out)
+
 def init_loc(x):
-    n_out = x['fn'].base_dist.loc.shape[0]
-    return torch.randn_like(x['fn'].base_dist.loc)/(4*n_out)**0.5
+    if 'weight' in x['name']:
+        n_out = x['fn'].base_dist.loc.shape[0]
+        means =  torch.randn_like(x['fn'].base_dist.loc)/(4*n_out)**0.5
+    elif 'bias' in x['name']:
+        means = torch.zeros_like(x['fn'].base_dist.loc)
+    return means
 
 class MultilayerBayesian(Multilayer):
     def __init__(self, in_features, out_features, hidden_features=50, n_layers=1, dropout=None,
@@ -63,14 +94,20 @@ class MultilayerBayesian(Multilayer):
                 k += 1
                 out_size, in_size = self.seq[i].weight.shape 
                 # We can't specify the device explicitly, thus using this hack
-                self.seq[i].bias = PyroSample(dist.Normal(torch.tensor(0., device=device), 1.,
+                self.seq[i].bias = PyroSample(dist.Normal(torch.tensor(0., device=device), 10.,
                                                           validate_args=False).expand([out_size]).to_event(1))
-                self.seq[i].weight = PyroSample(dist.Normal(torch.tensor(0., device=device),
-                                                            stds[k]/hidden_features**0.5, validate_args=False).expand([out_size,
+                self.seq[i].weight = PyroSample(dist.Normal(torch.tensor(0., device=device), # stds[k]/in_size**0.5
+                                                            1., validate_args=False).expand([out_size,
                                                                                           in_size]).to_event(2))
 
-        guide = AutoDiagonalNormal(self, init_loc_fn=init_loc, init_scale=1e-5)
-        self.guide = guide
+        self.guide = AutoDiagonalNormal(self, init_loc_fn=init_loc, init_scale=1e-5)
+        print(pyro.get_param_store().get_state())
+
+
+    def load_pretrained(self, model):
+        weights = dict(model.named_parameters())
+        self.guide = AutoDiagonalNormal(self, init_loc_fn=lambda x: weights[x['name']], init_scale=1e-5)
+
         
     def forward(self, x, y=None):
         y_pr = self.seq(x)
@@ -79,24 +116,25 @@ class MultilayerBayesian(Multilayer):
                 pyro.sample("obs", dist.Normal(y, self.target_std).to_event(1), obs=y_pr)
         return y_pr.detach()
 
-    def train(self, data_loader, n_epochs, num_particles=1, lr=1e-3, log_per=5):
+    def train(self, data_loader, n_epochs, num_particles=1, lr=1e-3, log_per=5, show_smooth=True, save_per=10):
         svi = SVI(self, self.guide, Adam({"lr": lr}), TraceMeanField_ELBO(num_particles=num_particles))
         losses = []
+        fig = None
         pyro.clear_param_store()
-        pp = ProgressPlotter(losses, log_per)
+        pp = ProgressPlotter(losses, "$-ELBO$", log_per, show_smooth)
         pp.start()
         for epoch in range(n_epochs):
             total_loss = 0.
-            for i, batch in enumerate(data_loader):
-                x, y = batch
-                x, y = x.float().to(self.device)[:, None], y.float().to(self.device)
+            for x, y in data_loader:
+                x, y = x.float().to(self.device), y.float().to(self.device)
                 loss = svi.step(x, y) / y.numel()
                 total_loss += loss
             total_loss /= len(data_loader)
             losses.append(total_loss)
-            pp.update(epoch)
-
-        return losses
+            fig = pp.update(epoch)
+            if epoch % save_per == 1:
+                self.save('MultilayerBayesian.pth')
+        return pp.fig, losses
 
     def get_mean_std(self, x, n_repeats=50):
         predictive = Predictive(self, guide=self.guide, num_samples=n_repeats,
@@ -104,6 +142,19 @@ class MultilayerBayesian(Multilayer):
         x = x.to(self.device)
         z = predictive(x)['_RETURN']
         return z.mean(dim=0), z.std(dim=0)
+
+    def save(self, filename):
+        state = {'guide': self.guide,
+                 'state_dict': self.state_dict(),
+                 'params': pyro.get_param_store().get_state()
+                }
+        torch.save(state, filename)
+
+    def load(self, filename):
+        state = torch.load(filename)
+        self.load_state_dict(state['state_dict'])
+        self.guide = state['guide']
+        pyro.get_param_store().set_state(state['params'])        
 
 class ModelGenerator:
     def __init__(self, creator, *args, **kwargs):

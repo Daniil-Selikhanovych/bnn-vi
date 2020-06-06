@@ -14,7 +14,8 @@ def get_rotation(theta):
 
 
 class CircleDataset(Dataset):
-    def __init__(self, n_samples, n_centers=9, sigma=0.02, include_zero=True, target_label=2., seed = None):
+    def __init__(self, n_samples, n_centers=9, sigma=0.1, ysigma=0.01, include_zero=True, 
+                 target_label=1., seed = None, radius=1.):
         super().__init__()
         if seed != None:
             random.seed(seed)
@@ -26,9 +27,11 @@ class CircleDataset(Dataset):
         if include_zero:
             self.nus.append(torch.zeros(2))
         self.sigma = sigma
+        self.ysigma = ysigma
+        self.radius = radius
         for i in range(n_centers-include_zero):
             R = get_rotation(i*360/(n_centers-include_zero))
-            self.nus.append(torch.tensor([1, 0] @ R, dtype=torch.float))
+            self.nus.append(torch.tensor([radius, 0] @ R, dtype=torch.float))
         classes = torch.multinomial(torch.ones(n_centers), n_samples, 
                                     replacement=True)
         
@@ -39,11 +42,11 @@ class CircleDataset(Dataset):
             if n_samples_class == 0:
                 continue
             dist = MultivariateNormal(self.nus[i], 
-                                      torch.eye(2)*self.sigma**2)
+                                      torch.eye(2)*sigma**2)
             data.append(dist.sample([n_samples_class.item()]))
             enc = torch.full((n_samples_class, n_centers), -target_label)
             enc[:, i] = target_label
-            target.append(enc + sigma * torch.randn(n_samples_class)[:, None])
+            target.append(enc + ysigma * torch.randn(n_samples_class)[:, None])
         self.data = torch.cat(data).float()
         self.target = torch.cat(target).float()
         
