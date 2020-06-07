@@ -48,7 +48,8 @@ class ProgressPlotter:
             
         plt.show()
 
-def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_size=32, mode='class'):
+def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data_scatter=None, data_plot=None,
+            batch_size=32):
     """
     Mode is 'class' ~ classification or 'reg' ~ regression
     """
@@ -63,7 +64,7 @@ def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_
 
     means = []
     stds = []
-    for x, in tqdm(test_loader):
+    for i, (x, ) in tqdm(enumerate(test_loader)):
         mean, std = model(x.float())
         means.append(mean)
         stds.append(std)
@@ -77,8 +78,12 @@ def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_
                     alpha=0.2, label="$\sigma[f(x)]$")
     ax.plot(ts, means, label="$\mathbb{E}\;[f(x)]$")
 
-    if data != None:
-        x, y = data
+    data = {'scatter': data_scatter,
+            'plot': data_plot}
+    for key in data:
+        if data[key] == None:
+            continue
+        x, y = data[key]
         x, y = np.array(x), np.array(y)
         x -= start
         norm = None
@@ -88,13 +93,14 @@ def plot_1D(start, end, model, num_points=50, figsize=(10, 6), data=None, batch_
             x = (x * r)/r**2
         
         mask = np.logical_and(x >= 0, x <= 1)
-        if mode == 'class':
-            ax.scatter(x[mask], y[mask], c='r', s=10)
-        elif mode == 'reg':
-            ax.plot(x[mask], y[mask], c='r')
-        else:
-            raise Exception(f"Incorrect mode: {mode}")
-
+        data[key] = (x[mask], y[mask])
+    if data['scatter'] != None:
+        x, y = data['scatter']
+        ax.scatter(x, y, c='r', s=10, alpha = 0.5, label='Source data')
+    if data['plot'] != None:
+        x, y = data['plot']
+        ax.plot(x, y, c='r', alpha = 0.4)
+        
     ax.set_xlabel("$t$")
     ax.set_ylabel("$f(x^{(0)}+t(x^{(1)}-x^{(0)})$")
     ax.set_xlim(0, 1)
