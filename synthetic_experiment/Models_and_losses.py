@@ -17,6 +17,7 @@ from itertools import product
 EPS = 1e-4
 Sigma = {1:4,2:3,3:2.25,4:2,5:2,6:1.9,7:1.75,8:1.75,9:1.7,10:1.65}
 p = 0.05
+log_like_std = 0.1
 
 class MCDO(nn.Module):
   def __init__(self,in_dim,out_dim,n_layers = 1,hid_dim=50,p=0.05):
@@ -201,38 +202,69 @@ def mean_reduction(preds,y):
   return preds
 
 
+def elbo_loss(model,x,y,depth,TRAIN_LENGTH, n_samples = 32,variance = 'estimate'):
+  assert variance in ['estimate','constant']
+  if variance=='estimate':
+      bs = x.shape[0]
+      res = torch.cat([mean_reduction(model(x),y) for i in range(n_samples)])
+      mu = res[:,0]
+      mask = (res[:,1]<=60).int()
+      std = torch.log( 1+EPS+torch.exp(res[:,1]*mask) )+res[:,1]*(1-mask)
+      dens = -torch.pow(mu/std,2)/2 - torch.log(std)
+      res =  KL(model,depth)*bs/TRAIN_LENGTH-dens.sum()/n_samples
+      return res
+  if variance=='constant':
+      bs = x.shape[0]
+      res = torch.cat([mean_reduction(model(x),y) for i in range(n_samples)])
+      mu = res[:,0]
+      dens = -torch.pow(mu/log_like_std,2)/2
+      res =  KL(model,depth)*bs/TRAIN_LENGTH-dens.sum()/n_samples
+      return res
+      
+      
+      
 
-def elbo_loss(model,x,y,depth,TRAIN_LENGTH, n_samples = 32):
-  bs = x.shape[0]
-  res = torch.cat([mean_reduction(model(x),y) for i in range(n_samples)])
-  mu = res[:,0]
-  mask = (res[:,1]<=60).int()
-  std = torch.log( 1+EPS+torch.exp(res[:,1]*mask) )+res[:,1]*(1-mask)
-  dens = -torch.pow(mu/std,2)/2 - torch.log(std)
-  res =  KL(model,depth)*bs/TRAIN_LENGTH-dens.sum()/n_samples
-  return res
 
 
-
-def loss_vi(model, x,mu_target,var_target,n_samples = 32):
-  bs = x.shape[0]
-  preds = torch.cat([model(x) for i in range(n_samples)])
-  mu = preds[:,0]
-  mask = (preds[:,1]<=60).int()
-  var = torch.pow(torch.log(1+EPS+torch.exp(preds[:,1]*mask))+preds[:,1]*(1-mask),2)
-
-  mu=mu.view(n_samples,bs).T.mean(dim=1)
-  var=var.view(n_samples,bs).T.mean(dim=1)
-
-  mu_target = mu_target.view(mu.shape)
-  var_target = var_target.view(var.shape)
-
-  mu_diff = mu-mu_target
-  var_diff = var-var_target
-
-  res = mu_diff@mu_diff+var_diff@var_diff
-
-  return res
+def loss_vi(model, x,mu_target,var_target,n_samples = 32,variance = 'estimate'):
+  
+  assert variance in ['estimate','constant']
+  if variance=='estimate':
+      bs = x.shape[0]
+      preds = torch.cat([model(x) for i in range(n_samples)])
+      mu = preds[:,0]
+      mask = (preds[:,1]<=60).int()
+      var = torch.pow(torch.log(1+EPS+torch.exp(preds[:,1]*mask))+preds[:,1]*(1-mask),2)
+    
+      mu=mu.view(n_samples,bs).T.mean(dim=1)
+      var=var.view(n_samples,bs).T.mean(dim=1)
+    
+      mu_target = mu_target.view(mu.shape)
+      var_target = var_target.view(var.shape)
+    
+      mu_diff = mu-mu_target
+      var_diff = var-var_target
+    
+      res = mu_diff.dot(mu_diff)+var_diff.dot(var_diff)
+      return res
+  
+  if variance=='constant':
+      bs = x.shape[0]
+      preds = torch.cat([model(x) for i in range(n_samples)])
+      mu = preds[:,0]
+      
+      var=mu.view(n_samples,bs).T.var(dim=1)
+      mu=mu.view(n_samples,bs).T.mean(dim=1)
+      
+    
+      mu_target = mu_target.view(mu.shape)
+      var_target = var_target.view(var.shape)
+    
+      mu_diff = mu-mu_target
+      var_diff = var-var_target
+    
+      res = mu_diff.dot(mu_diff)+var_diff.dot(var_diff)
+      return res
 
 
 
@@ -252,3 +284,106 @@ def loss_mcdo(model, x,mu_target,var_target,n_samples = 32):
   res = mu_diff@mu_diff +var_diff@var_diff
 
   return res
+
+
+
+
+
+def train_model(model,n_layers,optimizer,loss_func,
+          n_epochs,TRAIN_LENGTH,X,mu_target,
+          var_target=None,n_samples=32,variance = 'constant',return_losses=False):
+  ls = []
+  loss_name = loss_func.__name__
+  assert loss_name in ['elbo_loss','MCDO_loss','loss_vi','loss_mcdo']
+
+  for epoch in range(n_epochs):
+    optimizer.zero_grad()
+
+    if (loss_name=='elbo_loss'):
+      loss = loss_func(model,X,mu_target,n_layers,TRAIN_LENGTH,n_samples = n_samples,variance=variance)
+    if (loss_name=='MCDO_loss'):
+      loss = loss_func(model,X,mu_target, depth=n_layers,n_samples = n_samples)
+    if (loss_name=='loss_vi'):
+      assert var_target is not None
+      loss = loss_func(model,X,mu_target,var_target,n_samples = n_samples,variance=variance)
+    if (loss_name=='loss_mcdo'):
+      assert var_target is not None
+      loss = loss_func(model,X,mu_target,var_target,n_samples = n_samples)
+
+    loss.backward()
+    ls.append(loss.item())
+    optimizer.step()
+
+  if return_losses: return ls
+  
+  
+  
+  
+  
+def make_predictions(model,data,variance = 'constant',n_samples=128):
+  assert variance in ['constant','estimate']
+  bs = data.shape[0]
+  preds = torch.cat([model(data) for i in range(n_samples)])
+  mu = preds[:,0]
+  if variance == 'estimate':
+    mask = (preds[:,1]<=60).int()
+    std = torch.log(1+EPS+torch.exp(preds[:,1]*mask))+preds[:,1]*(1-mask)
+    mu = mu.view(n_samples,bs).T.mean(dim=1)
+    std = std.view(n_samples,bs).T.mean(dim=1)
+    return mu,std
+
+  std=mu.view(n_samples,bs).T.std(dim=1)
+  mu = mu.view(n_samples,bs).T.mean(dim=1)
+  return mu,std
+
+
+
+
+
+
+def plot_res(target,std,mu,model_name,
+             x=None,kind ='mean',x_coords = None,y_coords = None):
+  assert kind in ['mean','var','2d']
+  if x is None: x = range(mu.shape[0])
+  if kind =='mean':
+    plt.figure(figsize=(12,7))
+    plt.plot(x,mu,label='Prediction')
+    plt.plot(x,target,label='Target mean')
+    plt.fill_between(x,y1=mu-2*std,y2=mu+2*std,alpha=0.5,label='$\mu \pm 2\sigma$ range')
+    plt.legend(fontsize=12)
+    plt.title('{} mean predictions'.format(model_name),fontsize=15)
+    plt.xlabel('$x$',fontsize=15)
+    plt.ylabel('$\mu(f(x))$',fontsize=15)
+    plt.grid(True)
+    plt.savefig('{} mean predictions'.format(model_name)+'.jpeg')
+    plt.show()
+  if kind =='var':
+    plt.figure(figsize=(12,7))
+    plt.plot(x,std**2,label = 'Prediction')
+    plt.plot(x,target,label = 'Target var')
+    plt.title('{} variance prediction'.format(model_name),fontsize=15)
+    plt.xlabel('$x$',fontsize=15)
+    plt.ylabel('$\sigma^2(f(x))$',fontsize=15)
+    plt.legend(fontsize=12)
+    plt.grid(True)
+    plt.savefig('{} variance prediction'.format(model_name)+'.jpeg')
+    plt.show()
+  if kind =='2d':
+    assert (x_coords is not None) and (y_coords is not None)
+    plt.figure(figsize=(8,6))
+    plt.contourf(target,std,mu, 100, cmap='Spectral_r')
+    plt.colorbar()
+    plt.scatter(x_coords,y_coords,color='black')
+    plt.title('$\sigma(f(x))$ {}'.format(model_name),fontsize=15)
+    plt.xlabel('$x_1$',fontsize=15)
+    plt.ylabel('$x_2$',fontsize=15)
+    plt.savefig('$\sigma(f(x))$ {}'.format(model_name)+'.jpeg')
+    plt.show()
+
+
+  
+
+
+
+  
+
