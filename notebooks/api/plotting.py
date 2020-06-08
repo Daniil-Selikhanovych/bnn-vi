@@ -45,6 +45,7 @@ def plot_1d_label_data(data,
                          alpha=0.2, label = fr'confidence interval for {model_prediction_name}: mean $\pm \; 2 \cdot std$')
     plt.legend(loc = loc)
     plt.grid(True)
+    fig.savefig("reg_gp.pdf")
     plt.show() 
 
 def plot_variance_and_mean(grid, 
