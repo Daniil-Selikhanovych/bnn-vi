@@ -149,10 +149,12 @@ It was shown in [Gal & Ghahramani, 2016] that maximizing ELBO with MCDO family i
 $$
 ||y-\mathbb{E}f(X)||_2^2+\lambda \sum_{i=1}^{k} (||W_i||_2^2+||b_i||^2_2),
 $$
+
 where $y$ is the vector of all target values on the training dataset, $X$ is the matrix of input variables, $\mathbb{E}f(X)$ is the vector of expectations of BNN predictions, $k$ is the number of fully-connected layers, $W_i$ and $b_i$ are weights and biases of the $i'th$ layer, for a properly chosen $\lambda$. Also it was shown that in order to treat Dropout as Bayesian inference we should choose $\lambda$ by the formula:
 $$
 \lambda = \frac{pl^2}{2N\tau},
 $$
+
 where $p$ is the dropout probability, $l^2$ is the reciprocal of the prior variance on the weigths in the first fully-connected layer, $N$ is the size of the training data and $\tau$ is the conditional variance of $y|\mathbf{x},\mathbf{w}$. According to [Y. K. Foong et al, 2018] we used $p = 0.05$. 
 
 ## Requirements
