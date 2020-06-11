@@ -134,7 +134,7 @@ This model is analogous to the original with the only distinction, that the cond
 
 ### Regression 2D dataset
 
-We present our synthetic 2D regression dataset. Consider two clusters of points $(x,y)$ with centers in $\left(-\frac{1}{\sqrt{2}},-\frac{1}{\sqrt{2}}\right)$ and $\left(\frac{1}{\sqrt{2}},\frac{1}{\sqrt{2}}\right)$ with 100 points in each cluster drawn from normal distributions with standard deviation equal $0.1$. This will be the input variables for our model. The target is simply the evaluation of $f(x,y) = \sin(12 x y) + 0.66 \cos(25(x+y)) + \exp(x-y) + z, \varepsilon \sim \mathcal{N}(0,1)$$ at these points. Our objective is the uncertainty (standard deviation or variance) predicted by the model on the set $[-2,2]\times[-2,2]$. 
+We present our synthetic 2D regression dataset. Consider two clusters of points $(x,y)$ with centers in $\left(-\frac{1}{\sqrt{2}},-\frac{1}{\sqrt{2}}\right)$ and $\left(\frac{1}{\sqrt{2}},\frac{1}{\sqrt{2}}\right)$ with 100 points in each cluster drawn from normal distributions with standard deviation equal $0.1$. This will be the input variables for our model. The target is simply the evaluation of $f(x,y) = \sin(12 x y) + 0.66 \cos(25(x+y)) + \exp(x-y) + z, \varepsilon \sim \mathcal{N}(0,1)$ at these points. Our objective is the uncertainty (standard deviation or variance) predicted by the model on the set $[-2,2]\times[-2,2]$. 
 
 ### Variance prediction from model and losses from scratch
 
