@@ -26,6 +26,7 @@ $$
 $$
 f(x) = \sin 12x + 0.66 \cos 25x + 3.
 $$
+
 Random **seed** was $42$ for both $x_{k}$ and $y_{k}$. Unfortunately, the authors do not write anything about the regression function and the data generation process, so we made this choice in our experiments on our own. The task is to recover the unknown regression function and its uncertainty using 4 methods: Gaussian Processes (GP), Hamiltonian Monte Carlo (HMC), Variational inference with 2 approximate families: Mean Field Variational Inference (MVFI) and Monte Carlo Dropout (MCDO).
 
 ### Baseline 1: Gaussian Processes
@@ -97,7 +98,7 @@ We see that Local Reparametrization Trick poses independence on the prior scale 
   <img width="500" alt="Prior weight standard deviation 1 with trick for 2 layers" src="https://github.com/Daniil-Selikhanovych/bnn-vi/blob/master/img/MFVI/prior_std_tuning/reparametrization_Trick/2layer_reg_VItrick_std1.0.jpg?raw=true">
 </p>
 <p align="center">
-  <img width="500" alt="Prior weight standard deviation 10 for 2 layers" src="hhttps://github.com/Daniil-Selikhanovych/bnn-vi/blob/master/img/MFVI/prior_std_tuning/custom_model/2layer_reg_VI_std10.jpg?raw=true">
+  <img width="500" alt="Prior weight standard deviation 10 for 2 layers" src="https://github.com/Daniil-Selikhanovych/bnn-vi/blob/master/img/MFVI/prior_std_tuning/custom_model/2layer_reg_VI_std10.jpg?raw=true">
 </p>
 
 Even though it is easier for them to fit the data, there is no significant change in the uncertainty estimation. We emphasize that the usual notion of stacking layers to boost the models complexity doesn’t apply here, so we should keep looking for other approximation techniques.

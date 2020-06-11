@@ -17,6 +17,7 @@ We start from our synthetic 1D regression dataset:
 <p align="center"><img src="svgs/a2190a22d732b75371b3d14354ef3168.svg?invert_in_darkmode" align=middle width=294.53239859999996pt height=39.452455349999994pt/></p>
 <p align="center"><img src="svgs/2cf469448692cd4102dbd9caa080accb.svg?invert_in_darkmode" align=middle width=252.83896604999998pt height=18.312383099999998pt/></p>
 <p align="center"><img src="svgs/a40ce0326fc0e14a28a6fa565d2bec1e.svg?invert_in_darkmode" align=middle width=238.1847633pt height=16.438356pt/></p>
+
 Random **seed** was <img src="svgs/df52bf7ea910ee5450181708854d700e.svg?invert_in_darkmode" align=middle width=16.438418699999993pt height=21.18721440000001pt/> for both <img src="svgs/c34d63da9854e1c53ba51c021bdf1fa4.svg?invert_in_darkmode" align=middle width=16.66101689999999pt height=14.15524440000002pt/> and <img src="svgs/787ac731e86c7e339f5efcc8bc8f2384.svg?invert_in_darkmode" align=middle width=15.325460699999988pt height=14.15524440000002pt/>. Unfortunately, the authors do not write anything about the regression function and the data generation process, so we made this choice in our experiments on our own. The task is to recover the unknown regression function and its uncertainty using 4 methods: Gaussian Processes (GP), Hamiltonian Monte Carlo (HMC), Variational inference with 2 approximate families: Mean Field Variational Inference (MVFI) and Monte Carlo Dropout (MCDO).
 
 ### Baseline 1: Gaussian Processes
@@ -88,7 +89,7 @@ We see that Local Reparametrization Trick poses independence on the prior scale 
   <img width="500" alt="Prior weight standard deviation 1 with trick for 2 layers" src="https://github.com/Daniil-Selikhanovych/bnn-vi/blob/master/img/MFVI/prior_std_tuning/reparametrization_Trick/2layer_reg_VItrick_std1.0.jpg?raw=true">
 </p>
 <p align="center">
-  <img width="500" alt="Prior weight standard deviation 10 for 2 layers" src="hhttps://github.com/Daniil-Selikhanovych/bnn-vi/blob/master/img/MFVI/prior_std_tuning/custom_model/2layer_reg_VI_std10.jpg?raw=true">
+  <img width="500" alt="Prior weight standard deviation 10 for 2 layers" src="https://github.com/Daniil-Selikhanovych/bnn-vi/blob/master/img/MFVI/prior_std_tuning/custom_model/2layer_reg_VI_std10.jpg?raw=true">
 </p>
 
 Even though it is easier for them to fit the data, there is no significant change in the uncertainty estimation. We emphasize that the usual notion of stacking layers to boost the models complexity doesn’t apply here, so we should keep looking for other approximation techniques.
