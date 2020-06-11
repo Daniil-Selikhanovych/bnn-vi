@@ -38,7 +38,7 @@ In this experiment we learn GP using **GPflow** library. We trained GP with **ma
 
 ### Bayesian neural network architecture and setup 
 
-For all experiments we used a multi-layer fully-connected ReLU network with 50 hidden units on each hidden layer. We assume that the conditional distribution of target is $\mathcal{N}(y_{k}, \sigma^{2})$, where $\sigma = 0.1$ is constant for all observations and $y_k$ is the value provided as ground-truth. The prior for mean is set to zero for all parameters. The standard deviation of biases is set to one. Suppose, that there is layer $i$ with $N_{in, i}$ inputs and $N_{out, i}$. For each layer $i \in \overline{1, 10}$ we used $\sigma_{w, i}/\sqrt{N_{in, i}}$ for the prior standard deviation of each weight with $\sigma_{w} =\{\sigma_{first},3,2.25,2,2,1.9,1.75,1.75,1.7,1.65\}$. We will describe our $\sigma_{first}$ choice for each experiment. In original paper authors use $\sigma_{first} = 4$. According to [Tomczak et al., 2018] we initalize set biases mean to zero and standard deviation to one, weights standard deviations are set to $10^{-5}$ and their means are independent samples from $\mathcal{N}\left(1, \frac{1}{\sqrt{4N_{out, i}}\right)$ for the layer $i \in \overline{1, 10}$.
+For all experiments we used a multi-layer fully-connected ReLU network with 50 hidden units on each hidden layer. We assume that the conditional distribution of target is $\mathcal{N}(y_{k}, \sigma^{2})$, where $\sigma = 0.1$ is constant for all observations and $y_k$ is the value provided as ground-truth. The prior for mean is set to zero for all parameters. The standard deviation of biases is set to one. Suppose, that there is layer $i$ with $N_{in, i}$ inputs and $N_{out, i}$. For each layer $i \in \overline{1, 10}$ we used $\sigma_{w, i}/\sqrt{N_{in, i}}$ for the prior standard deviation of each weight with $\sigma_{w} =\{\sigma_{first},3,2.25,2,2,1.9,1.75,1.75,1.7,1.65\}$. We will describe our $\sigma_{first}$ choice for each experiment. In original paper authors use $\sigma_{first} = 4$. According to [Tomczak et al., 2018] we initalize set biases mean to zero and standard deviation to one, weights standard deviations are set to $10^{-5}$ and their means are independent samples from $\mathcal{N}\left(1, \frac{1}{\sqrt{4N_{out, i}}}\right)$ for the layer $i \in \overline{1, 10}$.
 
 ### Baseline 2: Hamiltonian Monte Carlo 
 
@@ -135,7 +135,6 @@ This model is analogous to the original with the only distinction, that the cond
 ### Regression 2D dataset
 
 We present our synthetic 2D regression dataset. Consider two clusters of points $(x,y)$ with centers in $\left(-\frac{1}{\sqrt{2}},-\frac{1}{\sqrt{2}}\right)$ and $\left(\frac{1}{\sqrt{2}},\frac{1}{\sqrt{2}}\right)$ with 100 points in each cluster drawn from normal distributions with standard deviation equal $0.1$. This will be the input variables for our model. The target is simply the evaluation of $f(x,y) = \sin(12 x y) + 0.66 \cos(25(x+y)) + \exp(x-y) + z, \varepsilon \sim \mathcal{N}(0,1)$$ at these points. Our objective is the uncertainty (standard deviation or variance) predicted by the model on the set $[-2,2]\times[-2,2]$. 
-$$
 
 ### Variance prediction from model and losses from scratch
 
