@@ -209,7 +209,7 @@ In this section we are going to the hypothesis that the poor uncertainty predict
 
 We consider functions <img src="svgs/1b30e9275f1aa309d5a0321e4b1cdb63.svg?invert_in_darkmode" align=middle width=113.18931029999999pt height=35.18167619999999pt/> with <img src="svgs/a89dd85d9917c80b990e3c5a180af7c0.svg?invert_in_darkmode" align=middle width=52.346134499999984pt height=21.18721440000001pt/> and <img src="svgs/507bed3b51d1c797ce32ec94b59cbfff.svg?invert_in_darkmode" align=middle width=287.35730759999996pt height=27.94539330000001pt/> on the segment <img src="svgs/43ca5ad9e1f094a31392f860ef481e5c.svg?invert_in_darkmode" align=middle width=45.66218414999998pt height=24.65753399999998pt/>. We will fit different networks using the
 following <img src="svgs/7252ad06a4944da2b6628a58281cb887.svg?invert_in_darkmode" align=middle width=11.45742179999999pt height=22.831056599999986pt/> loss function:
-<p align="center"><img src="svgs/03fc9dcb20ad7e694bc2b7261ab86b06.svg?invert_in_darkmode" align=middle width=331.47209864999996pt height=20.611885799999996pt/></p>
+<p align="center"><img src="svgs/d1f393a2c3f93df2a77be1644b08adb4.svg?invert_in_darkmode" align=middle width=331.47209864999996pt height=20.611885799999996pt/></p>
 
 #### Train dataset
 
