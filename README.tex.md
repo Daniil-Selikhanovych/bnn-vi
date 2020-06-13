@@ -148,9 +148,10 @@ $$
 $$
 can be rewritten as
 $$
-\sum\limits_{i = 1}^{\operatorname{num batches}} \left(\mathbb{E}_{q_{\phi}}\sum\limits_{j = 1}^{\operatorname{batch}_{i}}\left[\log p\left(y_{j, \operatorname{batch}_{i}} | \mathbf{x}_{j, \operatorname{batch}_{i}}, f_{\theta}\right)\right]-\frac{\operatorname{batch size}_{i}}{N}\mathrm{KL}\left[q_{\phi}(\theta) \| p(\theta)\right]\right)
+\sum\limits_{i = 1}^{\operatorname{num \; batches}} \left(\mathbb{E}_{q_{\phi}}\left[\sum\limits_{j = 1}^{\operatorname{batch}_{i}}\left[\log p\left(y_{j, \operatorname{batch}_{i}} | \mathbf{x}_{j, \operatorname{batch}_{i}}, f_{\theta}\right)\right]\right]-\frac{\operatorname{batch size}_{i}}{N}\mathrm{KL}\left[q_{\phi}(\theta) \| p(\theta)\right]\right)
 $$
-where $N = \sum_{i = 1}^{\operatorname{num batches}}\operatorname{batch size}_{i}$ is a size of train dataset. 
+
+where $N = \sum\limits_{i = 1}^{\operatorname{num \; batches}}\operatorname{batch size}_{i}$ is a size of train dataset. 
 
 The expectation for log-density part in ELBO loss was estimated using 32 Monte Carlo samples during training. For training stds parameters when model predicts variance we use the following trick for numerical stability:
 $$
@@ -160,14 +161,15 @@ output_{BNN}^{(2)} \quad \operatorname{else}
 \end{cases}
 $$
 
-We used $\varepsilon = 10^{-4}$ in all experiments for this part of our work. So, for $x > 60$ we used approximation $\log(1 + \exp(x)) = x$. The same trick with $\varpesilon = 10^{-4}$ was used for forward method in BNNs when we sample weights for current layer $i$:
+We used $\varepsilon = 10^{-4}$ in all experiments for this part of our work. So, for $x > 60$ we used approximation $\log(1 + \exp(x)) = x$. The same trick with $\varepsilon = 10^{-4}$ was used for forward method in BNNs when we sample weights for current layer $i$:
 $$
-W_{i} = \mu_{W, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right) \odot \operatorname{noise}, \quad \operatorname{noise}_{1},
+W_{i} = \mu_{W, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right) \odot \operatorname{noise}, 
 $$
 $$
-b_{i} = \mu_{b, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{b, i}\right)\right) \odot \operatorname{noise}, \quad \operatorname{noise}_{2},
+b_{i} = \mu_{b, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{b, i}\right)\right) \odot \operatorname{noise},
 $$
-where $\mu_{W, i}$ is an matrix with size $N_{i, out} \times N_{i, in}$ of learned means for elements in weight matrix $W_{i}$, $\rho_{W, i}$ is an matrix of learned parameters with size $N_{i, out} \times N_{i, in}$ that determines standard deviations for weight matrix $W_{i}$ (matrix $\log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right)$ is obtained element-wise from the matrix $\rho_{W, i}$) and $\operatorname{noise}_{1}$ is an matrix with size $N_{i, out} \times N_{i, in}$ such all elements of $\operatorname{noise}_{1}$ are sampled from $\mathcal{N}(0, 1)$ independently. The same notation is used for $\mu_{b, i}, \rho_{b, i}, \operatorname{noise}_{2}$: $\mu_{b, i}$ is an vector with size $N_{i, out}$ of learned means for elements in bias vector $b_{i}$, $\rho_{b, i}$ is an vector of learned parameters with size $N_{i, out}$ that determines standard deviations for bias vector $b_{i}$ (vector $\log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right)$ is obtained element-wise from the vector $\rho_{b, i}$) and $\operatorname{noise}_{2}$ is an vector with size $N_{i, out}$ such all elements of $\operatorname{noise}_{2}$ are sampled from $\mathcal{N}(0, 1)$ independently. 
+
+where $\mu_{W, i}$ is an matrix with size $N_{i, out} \times N_{i, in}$ of learned means for elements in weight matrix $W_{i}$, $\rho_{W, i}$ is an matrix of learned parameters with size $N_{i, out} \times N_{i, in}$ that determines standard deviations for weight matrix $W_{i}$ (matrix $\log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right)$ is obtained element-wise from the matrix $\rho_{W, i}$) and $\operatorname{noise}_{1}$ is an matrix with size $N_{i, out} \times N_{i, in}$ such as all elements of $\operatorname{noise}_{1}$ are sampled from $\mathcal{N}(0, 1)$ independently. The same notation is used for $\mu_{b, i}, \rho_{b, i}, \operatorname{noise}_{2}$: $\mu_{b, i}$ is an vector with size $N_{i, out}$ of learned means for elements in bias vector $b_{i}$, $\rho_{b, i}$ is an vector of learned parameters with size $N_{i, out}$ that determines standard deviations for bias vector $b_{i}$ (vector $\log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right)$ is obtained element-wise from the vector $\rho_{b, i}$) and $\operatorname{noise}_{2}$ is an vector with size $N_{i, out}$ such as all elements of $\operatorname{noise}_{2}$ are sampled from $\mathcal{N}(0, 1)$ independently. 
 
 #### Custom MCDO loss
 It was shown in [Gal & Ghahramani, 2016] that maximizing ELBO with MCDO family is equivalent to minimizing
