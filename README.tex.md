@@ -247,7 +247,7 @@ In this section we are going to the hypothesis that the poor uncertainty predict
 We consider functions $h(x)=\frac{1}{\pi \gamma} \frac{\gamma^{2}}{x^{2}+\gamma^{2}}$ with $\gamma = 0.3$ and $g(x)=\sin (2 x)+0.66 \cos (7 x)+\exp \left(x^{2}\right)$ on the segment $[-1, 1]$. We will fit different networks using the
 following $l_2$ loss function:
 $$
-\left\|\mathbb{E}_{\mathbf{w}}\left[f_{\mathbf{w}}(x)\right]-h(x)\right\|_{2}^{2}+\left\|\mathbb{V}_{\mathbf{w}}\left[f_{\mathbf{w}}(x)\right]-g(x)\right\|_{2}^{2}.
+\left\|\mathbb{E}_{\mathbf{w}}\left[f_{\mathbf{w}}(x)\right]-g(x)\right\|_{2}^{2}+\left\|\mathbb{V}_{\mathbf{w}}\left[f_{\mathbf{w}}(x)\right]-h(x)\right\|_{2}^{2}.
 $$
 
 #### Train dataset
