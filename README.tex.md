@@ -39,7 +39,7 @@ In this experiment we learn GP using **GPflow** library. We trained GP with **ma
 
 ### Bayesian neural network architecture and setup 
 
-For all experiments we used a multi-layer fully-connected ReLU network with 50 hidden units on each hidden layer. We assume that the conditional distribution of target is $\mathcal{N}(y_{k}, \sigma^{2})$, where $\sigma = 0.1$ is constant for all observations and $y_k$ is the value provided as ground-truth. The prior for mean is set to zero for all parameters. The standard deviation of biases is set to one. Suppose, that there is layer $i$ with $N_{in, i}$ inputs and $N_{out, i}$. For each layer $i \in \overline{1, 10}$ we used $\sigma_{w, i}/\sqrt{N_{in, i}}$ for the prior standard deviation of each weight with $\sigma_{w} =\{\sigma_{first},3,2.25,2,2,1.9,1.75,1.75,1.7,1.65\}$. We will describe our $\sigma_{first}$ choice for each experiment. In original paper authors use $\sigma_{first} = 4$. According to [Tomczak et al., 2018] we initalize set biases mean to zero and standard deviation to one, weights standard deviations are set to $10^{-5}$ and their means are independent samples from $\mathcal{N}\left(1, \frac{1}{\sqrt{4N_{out, i}}}\right)$ for the layer $i \in \overline{1, 10}$.
+For all experiments we used a multi-layer fully-connected ReLU network with 50 hidden units on each hidden layer. We assume that the conditional distribution of target is $\mathcal{N}(y_{k}, \sigma^{2})$, where $\sigma = 0.1$ is constant for all observations and $y_k$ is the value provided as ground-truth. The prior for mean is set to zero for all parameters. The standard deviation of biases is set to one. Suppose, that there is layer $i$ with $N_{in, i}$ inputs and $N_{out, i}$. For each layer $i \in \overline{1, 10}$ we used $\sigma_{w, depth}/\sqrt{N_{in, i}}$ for the prior standard deviation of each weight with $\sigma_{w} =\{\sigma_{first},3,2.25,2,2,1.9,1.75,1.75,1.7,1.65\}$ (array $\sigma_{w}$ denotes $\sigma_{w, depth}$ for each depth of BNN). We will describe our $\sigma_{first}$ choice for each experiment. In original paper authors use $\sigma_{first} = 4$. According to [Tomczak et al., 2018] we initalize set biases mean to zero and standard deviation to one, weights standard deviations are set to $10^{-5}$ and their means are independent samples from $\mathcal{N}\left(1, \frac{1}{\sqrt{4N_{out, i}}}\right)$ for the layer $i \in \overline{1, 10}$.
 
 ### Baseline 2: Hamiltonian Monte Carlo 
 
@@ -135,16 +135,41 @@ This model is analogous to the original with the only distinction, that the cond
 
 ### Regression 2D dataset
 
-We present our synthetic 2D regression dataset. Consider two clusters of points $(x,y)$ with centers in $\left(-\frac{1}{\sqrt{2}},-\frac{1}{\sqrt{2}}\right)$ and $\left(\frac{1}{\sqrt{2}},\frac{1}{\sqrt{2}}\right)$ with 100 points in each cluster drawn from normal distributions with standard deviation equal $0.1$. This will be the input variables for our model. The target is simply the evaluation of $f(x,y) = \sin(12 x y) + 0.66 \cos(25(x+y)) + \exp(x-y) + z, \varepsilon \sim \mathcal{N}(0,1)$ at these points. Our objective is the uncertainty (standard deviation or variance) predicted by the model on the set $[-2,2]\times[-2,2]$. 
+We present our synthetic 2D regression dataset. Consider two clusters of points $(x,y)$ with centers in $\left(-\frac{1}{\sqrt{2}},-\frac{1}{\sqrt{2}}\right)$ and $\left(\frac{1}{\sqrt{2}},\frac{1}{\sqrt{2}}\right)$ with 100 points in each cluster drawn from normal distributions with standard deviation equal $0.1$. This will be the input variables for our model. The target is simply the evaluation of $f(x,y) = \sin(12 x y) + 0.66 \cos(25(x+y)) + \exp(x-y) + \varepsilon, \varepsilon \sim \mathcal{N}(0,1)$ at these points. Our objective is the uncertainty (standard deviation or variance) predicted by the model on the set $[-2,2]\times[-2,2]$. 
 
 ### Variance prediction from model and losses from scratch
 
 In these experiments we used our own implementation of BNNs with MFVI and MCDO approximation families based only on **PyTorch** framework. We had to implement losses from scratch. 
 
-#### ELBO loss
-The ELBO was estimated using 32 Monte Carlo samples during training.
+#### Custom ELBO loss
+We implemented an ELBO loss with batches calculation:
+$$
+\mathcal{L}(\phi)=\sum_{n=1}^{N} \mathbb{E}_{q_{\phi}}\left[\log p\left(y_{n} | \mathbf{x}_{n}, f_{\theta}\right)\right]-\mathrm{KL}\left[q_{\phi}(\theta) \| p(\theta)\right]
+$$
+can be rewritten as
+$$
+\sum\limits_{i = 1}^{\operatorname{num batches}} \left(\mathbb{E}_{q_{\phi}}\sum\limits_{j = 1}^{\operatorname{batch}_{i}}\left[\log p\left(y_{j, \operatorname{batch}_{i}} | \mathbf{x}_{j, \operatorname{batch}_{i}}, f_{\theta}\right)\right]-\frac{\operatorname{batch size}_{i}}{N}\mathrm{KL}\left[q_{\phi}(\theta) \| p(\theta)\right]\right)
+$$
+where $N = \sum_{i = 1}^{\operatorname{num batches}}\operatorname{batch size}_{i}$ is a size of train dataset. 
 
-#### MCDO loss
+The expectation for log-density part in ELBO loss was estimated using 32 Monte Carlo samples during training. For training stds parameters when model predicts variance we use the following trick for numerical stability:
+$$
+\sigma_{prediction} = \begin{cases}
+\log\left(1 + \varepsilon + \exp\left(output_{BNN}^{(2)}\right)\right) \quad \operatorname{if } output_{BNN}^{(2)} \leq 60, \\
+output_{BNN}^{(2)} \quad \operatorname{else}
+\end{cases}
+$$
+
+We used $\varepsilon = 10^{-4}$ in all experiments for this part of our work. So, for $x > 60$ we used approximation $\log(1 + \exp(x)) = x$. The same trick with $\varpesilon = 10^{-4}$ was used for forward method in BNNs when we sample weights for current layer $i$:
+$$
+W_{i} = \mu_{W, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right) \odot \operatorname{noise}, \quad \operatorname{noise}_{1},
+$$
+$$
+b_{i} = \mu_{b, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{b, i}\right)\right) \odot \operatorname{noise}, \quad \operatorname{noise}_{2},
+$$
+where $\mu_{W, i}$ is an matrix with size $N_{i, out} \times N_{i, in}$ of learned means for elements in weight matrix $W_{i}$, $\rho_{W, i}$ is an matrix of learned parameters with size $N_{i, out} \times N_{i, in}$ that determines standard deviations for weight matrix $W_{i}$ (matrix $\log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right)$ is obtained element-wise from the matrix $\rho_{W, i}$) and $\operatorname{noise}_{1}$ is an matrix with size $N_{i, out} \times N_{i, in}$ such all elements of $\operatorname{noise}_{1}$ are sampled from $\mathcal{N}(0, 1)$ independently. The same notation is used for $\mu_{b, i}, \rho_{b, i}, \operatorname{noise}_{2}$: $\mu_{b, i}$ is an vector with size $N_{i, out}$ of learned means for elements in bias vector $b_{i}$, $\rho_{b, i}$ is an vector of learned parameters with size $N_{i, out}$ that determines standard deviations for bias vector $b_{i}$ (vector $\log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right)$ is obtained element-wise from the vector $\rho_{b, i}$) and $\operatorname{noise}_{2}$ is an vector with size $N_{i, out}$ such all elements of $\operatorname{noise}_{2}$ are sampled from $\mathcal{N}(0, 1)$ independently. 
+
+#### Custom MCDO loss
 It was shown in [Gal & Ghahramani, 2016] that maximizing ELBO with MCDO family is equivalent to minimizing
 $$
 ||y-\mathbb{E}f(X)||_2^2+\lambda \sum_{i=1}^{k} (||W_i||_2^2+||b_i||^2_2),
@@ -155,7 +180,7 @@ $$
 \lambda = \frac{pl^2}{2N\tau},
 $$
 
-where $p$ is the dropout probability, $l^2$ is the reciprocal of the prior variance on the weigths in the first fully-connected layer, $N$ is the size of the training data and $\tau$ is the conditional variance of $y|\mathbf{x},\mathbf{w}$. According to [Y. K. Foong et al, 2018] we used $p = 0.05$. 
+where $p$ is the dropout probability, $l^2$ is the reciprocal of the prior variance on the weigths in the first fully-connected layer, $N$ is the size of the training data and $\tau$ is the conditional variance of $y|\mathbf{x},\mathbf{w}$. According to [Y. K. Foong et al, 2018] we used $p = 0.05$. Also we used $\tau = 1$ and according to notation in [Gal, 2016] $l_{i} = \left(\sigma_{w, depth}/\sqrt{N_{in, i}}\right)^{-1} = \sqrt{N_{in, i}}/\sigma_{w, depth}$. 
 
 ## Requirements
 
