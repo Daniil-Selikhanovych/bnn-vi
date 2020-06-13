@@ -145,10 +145,10 @@ This model is analogous to the original with the only distinction, that the cond
 
 We used the following formulas for forward method in BNNs when we sample weights for current layer $i$:
 $$
-W_{i} = \mu_{W, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right) \odot \operatorname{noise}, 
+W_{i} = \mu_{W, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right) \odot \operatorname{noise}_{1}, 
 $$
 $$
-b_{i} = \mu_{b, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{b, i}\right)\right) \odot \operatorname{noise},
+b_{i} = \mu_{b, i} + \log\left(1 + \varepsilon + \exp\left(\rho_{b, i}\right)\right) \odot \operatorname{noise}_{2},
 $$
 $$
 \varepsilon = 10^{-4},
@@ -156,7 +156,7 @@ $$
 
 where $\mu_{W, i}$ is an matrix with size $N_{i, out} \times N_{i, in}$ of learned means for elements in weight matrix $W_{i}$; $\rho_{W, i}$ is an matrix of learned parameters with size $N_{i, out} \times N_{i, in}$ that determines standard deviations for weight matrix $W_{i}$ (matrix $\log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right)$ is obtained element-wise from the matrix $\rho_{W, i}$); $\operatorname{noise}_{1}$ is an matrix with size $N_{i, out} \times N_{i, in}$ such as all elements of $\operatorname{noise}_{1}$ are sampled from $\mathcal{N}(0, 1)$ independently. The same notation is used for $\mu_{b, i}, \rho_{b, i}, \operatorname{noise}_{2}$: $\mu_{b, i}$ is an vector with size $N_{i, out}$ of learned means for elements in bias vector $b_{i}$; $\rho_{b, i}$ is an vector of learned parameters with size $N_{i, out}$ that determines standard deviations for bias vector $b_{i}$ (vector $\log\left(1 + \varepsilon + \exp\left(\rho_{W, i}\right)\right)$ is obtained element-wise from the vector $\rho_{b, i}$); $\operatorname{noise}_{2}$ is an vector with size $N_{i, out}$ such as all elements of $\operatorname{noise}_{2}$ are sampled from $\mathcal{N}(0, 1)$ independently. 
 
-During testing for the model with constant conditional variance we calculate std for BNN output as Monte Carlo estimation using 128 samples of numerical stds for $output_{BNN}^{(1)}$ according to [Y. K. Foong et al, 2018]. For the model with unknown conditional variance (also during testing) we calculate std for BNN output as Monte Carlo estimation using 128 samples of $\sqrt{\mathbb{V}_{\mathbf{w}}(f^{\mu}_{\mathbf{w}}(\mathbf{x}))}$. During training these objectives were estimated using 32 Monte Carlo samples according to [Y. K. Foong et al, 2018].
+During testing for the model with constant conditional variance we calculate std for BNN output as Monte Carlo estimation using 128 samples of numerical stds for $output_{BNN}^{(1)}$ according to [Y. K. Foong et al, 2018]. For the model with unknown conditional variance (also during testing) we calculate std for BNN output as Monte Carlo estimation using 128 samples of $\sqrt{\mathbb{V}_{\mathbf{w}}(f^{\mu}_{\mathbf{w}}(\mathbf{x}))}$. Also for testing we use BNNs mean output as Monte Carlo estimation using 128 samples of $output_{BNN}^{(1)}$. During training these objectives were estimated using 32 Monte Carlo samples according to [Y. K. Foong et al, 2018].
 
 #### ELBO loss from scratch
 We implemented an ELBO loss with batches calculation:
@@ -170,7 +170,7 @@ $$
 
 where $N = \sum\limits_{i = 1}^{\operatorname{num \; batches}}\operatorname{batch size}_{i}$ is a size of train dataset. 
 
-The expectation for log-density part in ELBO loss was estimated using 32 Monte Carlo samples during training according to [Y. K. Foong et al, 2018]. For variance prediction models we used a trick for numerical stability. When calculating log-density Monte-Carlo estimation we implement the following formulas to obtain std prediction $\sqrt{\mathbb{V}_{\mathbf{w}}(f^{\mu}_{\mathbf{w}}(\mathbf{x}))}$ using the second BNN output $output_{BNN}^{(2)}$:
+The expectation for log-density part in ELBO loss was estimated using 32 Monte Carlo samples during training according to [Y. K. Foong et al, 2018]. For variance prediction models we used a trick for numerical stability. When calculating log-density Monte-Carlo estimation we implement the following formulas to obtain std prediction $\sqrt{\mathbb{V}_{\mathbf{w}}(f^{\mu}_{\mathbf{w}}(\mathbf{x}))}$ using the second BNNs output $output_{BNN}^{(2)}$:
 $$
 \sqrt{\mathbb{V}_{\mathbf{w}}(f^{\mu}_{\mathbf{w}}(\mathbf{x}))} = \begin{cases}
 \log\left(1 + \varepsilon + \exp\left(output_{BNN}^{(2)}\right)\right) \quad \operatorname{if } output_{BNN}^{(2)} \leq 60, \\
@@ -256,7 +256,7 @@ Our train dataset consists of $N = 40$ points according to [Y. K. Foong et al, 2
 
 #### MFVI training
 
-We train BNNs for 6000 epochs with Adam optimizer, $lr = 10^{-3}$ using MFVI approximation family with $l_2$ loss from the section **Mean/variance functions and loss**. We present results for training BNNs with 1 and 2 layers for the mode with constant conditional variance. We used stds estimation that was described in the section **Details of BNNs implementation from scratch**. We show results for 1 layer and 2 layers BNNs, top 2 figures correspond to BNN with 1 layer and the bottom 2 figures correspond to BNN with 2 layers. $x$ axis means indexes of points in **grid** on the segment $[-1, 1]$.
+We train BNNs for 6000 epochs with Adam optimizer, $lr = 10^{-3}$ using MFVI approximation family with $l_2$ loss from the section **Mean/variance functions and loss**. We present results for training BNNs with 1 and 2 layers for the mode with constant conditional variance. We used stds and means estimations that were described in the section **Details of BNNs implementation from scratch**. We show results for 1 layer and 2 layers BNNs, top 2 figures correspond to BNN with 1 layer and the bottom 2 figures correspond to BNN with 2 layers. $x$ axis means indexes of points in grid on the segment $[-1, 1]$.
 
 <p align="center">
   <img width="500" alt="1 HL MFVI BNN mean prediction" src="https://github.com/Daniil-Selikhanovych/bnn-vi/blob/master/img/MFVI/l2_loss/1HL%20MFVI%20fixed%20var%20mean%20predictions.jpeg?raw=true">
@@ -276,7 +276,7 @@ We see that 1 layer MFVI BNN predicts mean relatively good, but not variance. Th
 
 #### MCDO training
 
-The same conclusion can be done for MCDO approximation family. We also trained MCDO BNNs for 6000 epochs with Adam optimizer, $lr = 10^{-3}$ and $l_2$ loss from the section **Mean/variance functions and loss**. We used stds estimation that was described in the section **Details of BNNs implementation from scratch** for the mode with constant conditional variance. We show results for 1 layer and 2 layers BNNs, top 2 figures correspond to BNN with 1 layer and the bottom 2 figures correspond to BNN with 2 layers. $x$ axis means indexes of points in **grid** on the segment $[-1, 1]$.
+The same conclusion can be done for MCDO approximation family. We also trained MCDO BNNs for 6000 epochs with Adam optimizer, $lr = 10^{-3}$ and $l_2$ loss from the section **Mean/variance functions and loss**. We used stds and means estimations that were described in the section **Details of BNNs implementation from scratch** for the mode with constant conditional variance. We show results for 1 layer and 2 layers BNNs, top 2 figures correspond to BNN with 1 layer and the bottom 2 figures correspond to BNN with 2 layers. $x$ axis means indexes of points in grid on the segment $[-1, 1]$.
 
 <p align="center">
   <img width="500" alt="1 HL MCDO BNN mean prediction" src="https://github.com/Daniil-Selikhanovych/bnn-vi/blob/master/img/MCDO/l2_loss/1HL%20MCDO%20mean%20predictions.jpeg?raw=true">
